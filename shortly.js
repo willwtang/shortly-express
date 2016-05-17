@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-var cookieParser = require('cookie-parser');
+var session = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -21,12 +21,13 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
-app.use(cookieParser());
+app.use(session({
+  secret: 'keyboard cat'
+}));
 
 app.get('/', 
 function(req, res) {
-  console.log('COOKIE#####', req.headers.cookie, req.cookie);
-  if (req.headers.cookie) {
+  if ('user' in req.session) {
     res.render('index');
     return;
   }
@@ -68,9 +69,8 @@ function(req, res) {
   res.redirect(301, '/login');
 });
 
-app.get('/cookie', function(req, res) {
-  res.cookie('cookie', 'cookie_value').send('cookie is set');
-});
+// app.get('/cookie', function(req, res) {
+// });
 
 app.get('/links', 
 function(req, res) {
@@ -126,7 +126,6 @@ function(req, res) {
 
 app.post('/login',
 function(req, res) {
-  console.log(Users);
   var username = req.body.username;
   var password = req.body.password;
 
@@ -135,9 +134,22 @@ function(req, res) {
       res.status(200).send('User doesn\'t exist');
     } else {
       var authenticated = util.passwordMatch(password, exists.attributes.password, exists.attributes.salt);
-      console.log(authenticated);
+      if (authenticated) {
+        req.session.user = username;
+        res.redirect('/');
+        res.end();
+        return;
+      } 
+      res.end('Error');
     }
   });  
+});
+
+app.get('/logout', 
+function(req, res) {
+  req.session.destroy();
+  res.redirect('/login');
+  res.end();
 });
 
 
