@@ -62,7 +62,7 @@ function(req, res) {
 
 app.get('/create', 
 function(req, res) {
-  if (req.headers.cookie) {
+  if ('user' in req.session) {
     res.render('index');
     return;
   }
@@ -74,13 +74,13 @@ function(req, res) {
 
 app.get('/links', 
 function(req, res) {
-  //if (req.headers.cookie) {
-  Links.reset().fetch().then(function(links) {
-    res.status(200).send(links.models);
-  });
-  return;
-  //}
-  // res.redirect(301, '/login');
+  if ('user' in req.session) {
+    Links.reset().fetch().then(function(links) {
+      res.status(200).send(links.models);
+    });
+    return;
+  }
+  res.redirect(301, '/login');
 });
 
 app.post('/links', 
