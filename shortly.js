@@ -13,7 +13,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
-
+console.log(github.g)
 var app = express();
 
 app.set('views', __dirname + '/views');
@@ -30,11 +30,17 @@ app.use(passport.session());
 passport.use(new GitHubStrategy({
   clientID: github.GITHUB_CLIENT_ID,
   clientSecret: github.GITHUB_CLIENT_SECRET,
-  callbackURL: 'http://127.0.0.1:3000/auth/github/callback'
+  callbackURL: 'http://127.0.0.1:4568/auth/github/callback'
 },
 function(accessToken, refreshToken, profile, done) {
-  User.findOrCreate({ githubId: profile.id }, function (err, user) {
-    return done(err, user);
+  console.log('GitHubStrategy');
+  process.nextTick(function () {
+      
+    // To keep the example simple, the user's GitHub profile is returned to
+    // represent the logged-in user.  In a typical application, you would want
+    // to associate the GitHub account with a user record in your database,
+    // and return that user instead.
+    return done(null, profile);
   });
 }
 ));
@@ -50,9 +56,10 @@ passport.deserializeUser(function(obj, done) {
 
 
 app.get('/', 
-// passport.authenticate('local'),
+util.ensureAuthenticated,
 function(req, res) {
-    res.render('index');
+  console.log(req.user);
+  res.render('index');
 });
 
 // app.get('/signup',
@@ -82,26 +89,25 @@ function(req, res) {
 // });
 
 app.get('/create', 
+util.ensureAuthenticated,
 function(req, res) {
-  if ('user' in req.session) {
-    res.render('index');
-    return;
-  }
-  res.redirect(301, '/login');
+  // if ('user' in req.session) {
+  res.render('index');
+    // return;
+  // }
+  // res.redirect(301, '/login');
 });
 
 app.get('/links', 
+util.ensureAuthenticated,
 function(req, res) {
-  if ('user' in req.session) {
-    Links.reset().fetch().then(function(links) {
-      res.status(200).send(links.models);
-    });
-    return;
-  }
-  res.redirect(301, '/login');
+  Links.reset().fetch().then(function(links) {
+    res.status(200).send(links.models);
+  });
 });
 
 app.post('/links', 
+util.ensureAuthenticated,
 function(req, res) {
   var uri = req.body.url;
 
@@ -164,7 +170,7 @@ function(req, res) {
 // });
 
 app.get('/auth/github',
-  passport.authenticate('github', { scope: [ 'user:email' ] }),
+  passport.authenticate('github'),
   function(req, res) {
     // The request will be redirected to GitHub for authentication, so this
     // function will not be called.
@@ -173,16 +179,19 @@ app.get('/auth/github',
 app.get('/auth/github/callback', 
   passport.authenticate('github', { failureRedirect: '/login' }),
   function(req, res) {
-    res.redirect('127.0.0.1:4568/');
+    console.log('callback');
+    res.redirect('/');
   });
 
 app.get('/logout', 
-function(req, res) {
-  req.logout();
-  // req.session.destroy();
-  res.redirect('/login');
-  res.end();
-});
+  function(req, res) {
+    console.log('here');
+    req.session.destroy();
+    req.user = null;
+    res.redirect('/auth/github');
+    res.end();
+  });
+
 
 
 /************************************************************/
