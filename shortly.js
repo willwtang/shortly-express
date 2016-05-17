@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var cookieParser = require('cookie-parser');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -21,23 +21,66 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
-
+app.use(cookieParser());
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  console.log('COOKIE#####', req.headers.cookie, req.cookie);
+  if (req.headers.cookie) {
+    res.render('index');
+    return;
+  }
+  res.redirect(301, '/login');
+});
+
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup',
+function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({ username: username }).fetch().then(function(exists) {
+    if (exists) {
+      res.status(200).send('User already exists');
+    } else {
+      Users.create({
+        username: username,
+        password: password
+      })
+      .then(function() {
+        res.status(200).send('Success!');
+      });
+    }
+  });
+
 });
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  if (req.headers.cookie) {
+    res.render('index');
+    return;
+  }
+  res.redirect(301, '/login');
+});
+
+app.get('/cookie', function(req, res) {
+  res.cookie('cookie', 'cookie_value').send('cookie is set');
 });
 
 app.get('/links', 
 function(req, res) {
+  //if (req.headers.cookie) {
   Links.reset().fetch().then(function(links) {
     res.status(200).send(links.models);
   });
+  return;
+  //}
+  // res.redirect(301, '/login');
 });
 
 app.post('/links', 
@@ -76,6 +119,26 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/login', 
+function(req, res) {
+  res.render('login');
+});
+
+app.post('/login',
+function(req, res) {
+  console.log(Users);
+  var username = req.body.username;
+  var password = req.body.password;
+
+  new User({ username: username }).fetch().then(function(exists) {
+    if (!exists) {
+      res.status(200).send('User doesn\'t exist');
+    } else {
+      var authenticated = util.passwordMatch(password, exists.attributes.password, exists.attributes.salt);
+      console.log(authenticated);
+    }
+  });  
+});
 
 
 /************************************************************/
