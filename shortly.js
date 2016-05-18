@@ -13,7 +13,6 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
-console.log(github.g)
 var app = express();
 
 app.set('views', __dirname + '/views');
@@ -33,9 +32,9 @@ passport.use(new GitHubStrategy({
   callbackURL: 'http://127.0.0.1:4568/auth/github/callback'
 },
 function(accessToken, refreshToken, profile, done) {
-  console.log('GitHubStrategy');
+  console.log(accessToken, refreshToken);
   process.nextTick(function () {
-      
+    
     // To keep the example simple, the user's GitHub profile is returned to
     // represent the logged-in user.  In a typical application, you would want
     // to associate the GitHub account with a user record in your database,
@@ -54,11 +53,9 @@ passport.deserializeUser(function(obj, done) {
 });
 
 
-
 app.get('/', 
 util.ensureAuthenticated,
 function(req, res) {
-  console.log(req.user);
   res.render('index');
 });
 
@@ -91,11 +88,7 @@ function(req, res) {
 app.get('/create', 
 util.ensureAuthenticated,
 function(req, res) {
-  // if ('user' in req.session) {
   res.render('index');
-    // return;
-  // }
-  // res.redirect(301, '/login');
 });
 
 app.get('/links', 
@@ -143,10 +136,10 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
-// app.get('/login', 
-// function(req, res) {
-//   res.render('login');
-// });
+app.get('/login', 
+function(req, res) {
+  res.render('login');
+});
 
 // app.post('/login',
 // function(req, res) {
@@ -177,7 +170,7 @@ app.get('/auth/github',
   });
 
 app.get('/auth/github/callback', 
-  passport.authenticate('github', { failureRedirect: '/login' }),
+  passport.authenticate('github', { failureRedirect: '/auth/github' }),
   function(req, res) {
     console.log('callback');
     res.redirect('/');
@@ -185,11 +178,12 @@ app.get('/auth/github/callback',
 
 app.get('/logout', 
   function(req, res) {
-    console.log('here');
-    req.session.destroy();
-    req.user = null;
-    res.redirect('/auth/github');
-    res.end();
+    req.session.destroy(function() {
+      res.redirect('/login');
+      console.log(req.session);
+
+    });
+    
   });
 
 

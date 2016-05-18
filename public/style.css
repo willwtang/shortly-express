@@ -135,3 +135,17 @@ form input[type=text], form input[type=password] {
 .creator .message {
   clear: both;
 }
+
+.splash {
+  display: inline-block;
+  background-color: #39C0ED;
+  border: 3px solid darkblue;
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.splash a {
+  color: #fff;
+}
